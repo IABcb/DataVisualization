@@ -7,8 +7,11 @@ from random import uniform as uni
 
 def multilinear_plot(figure_info):
 
-    data_dict = {name:[uni(-1.5, 1.5),uni(-1.5, 1.5),uni(-1.5, 1.5),uni(-1.5, 1.5)] for name in figure_info["names"]}
-    data_dict[figure_info["x_name"]] = [0,1,2,3]
+    # data_dict = {name:[uni(-1.5, 1.5),uni(-1.5, 1.5),uni(-1.5, 1.5),uni(-1.5, 1.5)] for name in figure_info["names"]}
+    # data_dict[figure_info["x_name"]] = [0,1,2,3]
+
+    data_dict = {name:[1] for name in figure_info["names"]}
+    data_dict[figure_info["x_name"]] = [0]
 
     source = ColumnDataSource(data_dict)
     fig = Figure(x_range = Range1d(figure_info["x_range"][0], figure_info["x_range"][1]),
@@ -27,7 +30,12 @@ def multilinear_plot(figure_info):
     fig.yaxis.axis_label = figure_info["yaxis_label"]
     fig.title.align = figure_info["title_align"]
 
-    return fig
+    return fig, source
+
+
+def add_data(source, fig_info):
+    last_time = source.data[fig_info["x_name"]]
+
 
 
 def main():
@@ -44,7 +52,7 @@ def main():
                     "xaxis_label":"x", "yaxis_label":"y",
                     "title_align":"center"}
 
-    fig1 = multilinear_plot(figure_info1)
+    fig1, source1 = multilinear_plot(figure_info1)
     curdoc().add_root(layout([[fig1]]))
 
 main()

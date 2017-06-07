@@ -1,5 +1,2 @@
-Datos paro en Japon
+Fuente: https://www.japanmacroadvisors.com/page/category/economic-indicators/labor-markets/unemployment-rate/
 
-1) Frecuencia: mensual
-2) Periodo: 01/01/2002 - 31/12/2016
-3) Fuente: https://www.ons.gov.uk/employmentandlabourmarket/peoplenotinwork/unemployment/timeseries/mgsx/lms

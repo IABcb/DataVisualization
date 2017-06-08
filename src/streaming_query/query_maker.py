@@ -7,7 +7,7 @@ from KafkaConnection.kafka_connection import KafkaConnection as KFK
 
 def init_kafka():
     print('Starting Kafka Broker...')
-    curr_path = os.path.dirname(os.path.abspath(__file__)).replace("/src", "/docker/Spotify_Kafka/")
+    curr_path = os.path.dirname(os.path.abspath(__file__)).replace("/src/streaming_query", "/docker/Spotify_Kafka/")
     run_file = 'run.py'
     os.system('python ' + curr_path + run_file)
     time.sleep(5)
@@ -16,20 +16,20 @@ def stop_kafka():
     os.system('docker stop kafka; docker rm kafka')
     time.sleep(2)
 
-def create_query_structure(stockExchange, countries, coins):
-    message_structure = dict()
-    message_structure['StockExchange'] = stockExchange
-    message_structure['Country'] = countries[stockExchange]
-    message_structure['Coin'] = coins[stockExchange]
-
-    message_structure['Date'] = 'NA'
-    message_structure['Open'] = 'NA'
-    message_structure['Cose'] = 'NA'
-    message_structure['High'] = 'NA'
-    message_structure['Low'] = 'NA'
-    message_structure['AdjClose'] = 'NA'
-    message_structure['Volume'] = 'NA'
-    return message_structure
+# def create_query_structure(stockExchange, countries, coins):
+#     message_structure = dict()
+#     message_structure['StockExchange'] = stockExchange
+#     message_structure['Country'] = countries[stockExchange]
+#     message_structure['Coin'] = coins[stockExchange]
+# 
+#     message_structure['Date'] = 'NA'
+#     message_structure['Open'] = 'NA'
+#     message_structure['Cose'] = 'NA'
+#     message_structure['High'] = 'NA'
+#     message_structure['Low'] = 'NA'
+#     message_structure['AdjClose'] = 'NA'
+#     message_structure['Volume'] = 'NA'
+#     return message_structure
 
 def make_query(query_structure, finish_queries, items_to_extract):
     print('New query')

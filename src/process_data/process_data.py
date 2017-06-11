@@ -16,14 +16,14 @@ class IBEX35():
     def process_stockExchangeData(self):
         # Read stockExchange data
         print('Reading IBEX35 stock Exchange data')
-        self.input_stock_file = pd.read_csv(self.input_stock_path, sep=self.sep, names=self.stock_column_names)
+        self.input_stock_file = pd.read_csv(self.input_stock_path, sep=self.sep, names=self.stock_column_names, header = 0)
         print(' Processing...')
         # Drop first value. Is not common in all dataframes
         self.process_data = self.input_stock_file[self.input_stock_file.Date != '1999-12-31']
         self.process_data = self.process_data.reset_index(drop = True)
 
         # Change date format
-        for date in self.process_data.Date[1:]:
+        for date in self.process_data.Date:
             process_date = '-'.join(date.split('-')[:-1])
             index_row = self.process_data[self.process_data.Date == date].index.tolist()
             self.process_data.set_value(index_row, 'Date', process_date)
@@ -31,10 +31,52 @@ class IBEX35():
         return self.process_data
 
     def process_unemploymentData(self):
-        self.input_unem_file = pd.read_csv(self.input_unem_path, sep=self.sep, names=self.unem_column_names)
+        # Read unemployment data
+        print('Reading IBEX35 unemployment data')
+        self.input_unem_file = pd.read_csv(self.input_unem_path, sep=self.sep, names=self.unem_column_names, header = 0)
         self.process_data_unem = self.input_unem_file
-        print(self.process_data_unem)
-        # print(self.process_data_unem .pivot(index='Date', columns='', values=self.unem_column_names))
+        # print(self.process_data_unem)
+
+        print(' Processing...')
+        # Transpose the dataframe
+        self.process_data_unem = self.process_data_unem.transpose()
+        # Rename columns
+        self.process_data_unem = self.process_data_unem.rename(columns={0: "Date", 1: "Data"})
+        # self.process_data_unem = self.process_data_unem[1:]
+        # Sort by date
+        self.process_data_unem = self.process_data_unem.sort_values(by='Date')
+        self.process_data_unem = self.process_data_unem.reset_index(drop=True)
+        # Fill data from 2001
+        start_date = '2001T4'
+        stop_date = '1999T4'
+        next_date = start_date
+        fill = 'None'
+        indicator = 'T'
+        next_indicator = 4
+        for date in self.process_data_unem.Date:
+            if next_date != stop_date:
+                self.process_data_unem.loc[-1] = [next_date, fill]
+                # shifting index
+                self.process_data_unem.index = self.process_data_unem.index + 1
+                # sorting by index
+                self.process_data_unem = self.process_data_unem.sort_index()
+
+                if next_date.split(indicator)[1] == '1':
+                    next_indicator = 4
+                    next_date = str(int(next_date.split(indicator)[0]) - 1) + indicator + str(next_indicator)
+                else:
+                    next_indicator = next_indicator - 1
+                    next_date = str(int(next_date.split(indicator)[0])) + indicator + str(next_indicator)
+            else:
+                break
+
+        # Change T idicator for Q
+        change_indicator = 'Q'
+        for date in self.process_data_unem.Date:
+            date_input = date.split(indicator)[0] + change_indicator + date.split(indicator)[1]
+            index_row = self.process_data_unem[self.process_data_unem.Date == date].index.tolist()
+            self.process_data_unem.set_value(index_row, 'Date', date_input)
+        print(' Done!')
         return self.process_data_unem
 
 class DJI():
@@ -48,14 +90,14 @@ class DJI():
     def process_stockExchangeData(self):
         # Read stockExchange data
         print('Reading DJI stock Exchange data')
-        self.input_stock_file = pd.read_csv(self.input_stock_path, sep=self.sep, names=self.stock_column_names)
+        self.input_stock_file = pd.read_csv(self.input_stock_path, sep=self.sep, names=self.stock_column_names, header = 0)
         print(' Processing...')
         # Drop last value. Is not common in all dataframes
         self.process_data = self.input_stock_file[self.input_stock_file.Date != '2016-12-01']
         self.process_data = self.process_data.reset_index(drop = True)
 
         # Change date format
-        for date in self.process_data.Date[1:]:
+        for date in self.process_data.Date:
             process_date = '-'.join(date.split('-')[:-1])
             index_row = self.process_data[self.process_data.Date == date].index.tolist()
             self.process_data.set_value(index_row, 'Date', process_date)
@@ -63,10 +105,45 @@ class DJI():
         return self.process_data
 
     def process_unemploymentData(self):
-        # self.input_unem_file = pd.read_csv(self.input_unem_path, sep=self.sep, names=self.DJI_unem_column_names)
-        # self.process_data_unem = self.input_unem_file
-        # return self.process_data_unem
-        pass
+        # Read unemployment data
+        print('Reading DJI unemployment data')
+        self.input_unem_file = pd.read_csv(self.input_unem_path, sep=self.sep, names=self.unem_column_names, header = 0)
+
+        print(' Processing...')
+
+        nQs = 4
+        curr_Q = 1
+        indicator = 'Q'
+        next_index = 0
+        Q_months = ['None', 'Mar', 'Jun', 'Sep', 'Dec']
+        cols = ['Date', 'Data']
+        init = ['None', 'None']
+
+        self.process_data_unem = pd.DataFrame.from_records([init], columns=cols, index=[next_index])
+        self.process_data_unem = self.process_data_unem.reset_index(drop=True)
+        for date in self.input_unem_file.Year:
+            for d in range(nQs):
+                next_index += 1
+                row = list()
+                curr_date = str(date) + indicator + str(curr_Q)
+                row.append(curr_date)
+                row.append(self.input_unem_file[Q_months[curr_Q]][self.input_unem_file.Year == date].item())
+
+                line = pd.DataFrame.from_records([row], columns=cols, index= [next_index])
+                frames = [self.process_data_unem, line]
+                self.process_data_unem = pd.concat(frames)
+                # self.process_data_unem = self.process_data_unem.reset_index(drop=True)
+
+                if curr_Q == nQs:
+                    curr_Q = 1
+                else:
+                    curr_Q += 1
+
+        self.process_data_unem = self.process_data_unem[1:]
+        print(self.process_data_unem)
+        print(' Done!')
+        return self.process_data_unem
+
 
 class LSE():
     def __init__(self, input_stock_path, input_unem_path, stock_column_names, unem_column_names):
@@ -79,7 +156,7 @@ class LSE():
     def process_stockExchangeData(self):
         # Read stockExchange data
         print('Reading LSE stock Exchange data')
-        self.input_stock_file = pd.read_csv(self.input_stock_path, sep=self.sep, names=self.stock_column_names)
+        self.input_stock_file = pd.read_csv(self.input_stock_path, sep=self.sep, names=self.stock_column_names, header = 0)
         print(' Processing...')
         # Drop last value. Is not common in all dataframes
         self.process_data = self.input_stock_file[self.input_stock_file.Date != '2016-12-01']
@@ -89,7 +166,7 @@ class LSE():
         month_to_add = '10'
         prev_month = '09'
         fill = 'None'
-        for date in self.process_data.Date[1:]:
+        for date in self.process_data.Date:
             if date.split('-')[1] == prev_month:
                 curr_index = self.process_data[self.process_data['Date'] == date].index.tolist()
                 curr_index = curr_index[0]
@@ -122,9 +199,6 @@ class LSE():
                 self.process_data = self.process_data.reset_index(drop=True)
                 next_date_remove = str(int(next_date_remove.split('-')[0]) + 1) + '-' + month_remove
 
-        # Drop column names value. For easier filling dates.
-        self.process_data = self.process_data[1:]
-
         # Fill with None from 2000-01-01 until 2001-07-31, for common structure
         init_date = '2001-06-31'
         last_date = '1999-12-31'
@@ -154,15 +228,8 @@ class LSE():
                 next_date[1] = next_month
             next_date = '-'.join(next_date)
 
-        # adding a columnames again
-        self.process_data.loc[-1] = self.stock_column_names
-        # shifting index
-        self.process_data.index = self.process_data.index + 1
-        # sorting by index
-        self.process_data = self.process_data.sort_index()
-
         # Change date format
-        for date in self.process_data.Date[1:]:
+        for date in self.process_data.Date:
             process_date = '-'.join(date.split('-')[:-1])
             index_row = self.process_data[self.process_data.Date == date].index.tolist()
             self.process_data.set_value(index_row, 'Date', process_date)
@@ -170,8 +237,12 @@ class LSE():
         return self.process_data
 
     def process_unemploymentData(self):
+        # Read unemployment data
+        print('Reading LSE unemployment data')
         # self.input_unem_file = pd.read_csv(self.input_unem_path, sep=self.sep, names=self.unem_column_names)
         # self.process_data_unem = self.input_unem_file
+        print(' Processing...')
+        print(' Done!')
         # return self.process_data_unem
         pass
 
@@ -186,12 +257,12 @@ class N225():
     def process_stockExchangeData(self):
         # Read stockExchange data
         print('Reading N225 stock Exchange data')
-        self.input_stock_file = pd.read_csv(self.input_stock_path, sep=self.sep, names=self.stock_column_names)
+        self.input_stock_file = pd.read_csv(self.input_stock_path, sep=self.sep, names=self.stock_column_names, header = 0)
 
         self.process_data = self.input_stock_file
         print(' Processing...')
         # Change date format
-        for date in self.process_data.Date[1:]:
+        for date in self.process_data.Date:
             process_date = '-'.join(date.split('-')[:-1])
             index_row = self.process_data[self.process_data.Date == date].index.tolist()
             self.process_data.set_value(index_row, 'Date', process_date)
@@ -199,8 +270,12 @@ class N225():
         return self.process_data
 
     def process_unemploymentData(self):
-        # self.input_unem_file = pd.read_csv(self.input_unem_path, sep=self.sep, names=self.unem_column_names)
+        # Read unemployment data
+        print('Reading N225 unemployment data')
+        # self.input_unem_file = pd.read_csv(self.input_unem_path, sep=self.sep, names=self.unem_column_names, header = 0)
         # self.process_data_unem = self.input_unem_file
+        print(' Processing...')
+        print(' Done!')
         # return self.process_data_unem
         pass
 
@@ -215,7 +290,7 @@ def toCSV_StockExchangeProcessed_data(dict_csvs, column_names, index_colum, valu
 
     # Write header of csv output file
     csv_writer.writerow(column_names)
-    for value in first_csv[first_csv.columns[0]][1:]:
+    for value in first_csv[first_csv.columns[0]]:
         row = list()
         row.append(value)
         for key in dict_csvs.keys():
@@ -257,9 +332,11 @@ if __name__ == "__main__":
                                 '2004T4', '2004T3',	'2004T2', '2004T1',
                                 '2003T4', '2003T3',	'2003T2', '2003T1',
                                 '2002T4', '2002T3',	'2002T2', '2002T1']
-    # DJI_unem_column_names = []
-    # LSE_unem_column_names = []
-    # N225_unem_column_names = []
+    DJI_unem_column_names = ['Year', 'Jan',	'Feb', 'Mar', 'Apr',
+                             'May', 'Jun', 'Jul', 'Aug', 'Sep',
+                             'Oct', 'Nov', 'Dec']
+    LSE_unem_column_names = []
+    N225_unem_column_names = []
 
     # Paths StockExchange
     stock_general_input = os.path.dirname(os.path.abspath(__file__)).replace('src/process_data', 'data/datos_bolsa/')
@@ -280,29 +357,29 @@ if __name__ == "__main__":
 
 
     IBEX35 = IBEX35(stock_inputs['IBEX35'], unemployment_inputs['IBEX35'], stock_column_names, IBEX35_unem_column_names)
-    # DJI = DJI(stock_inputs['DJI'], unemployment_inputs['DJI'], stock_column_names, DJI_unem_column_names)
-    # LSE = LSE(stock_inputs['LSE'], unemployment_inputs['LSE'], stock_column_names, LSE_unem_column_names)
-    # N225 = N225(stock_inputs['N225'], unemployment_inputs['N225'], stock_column_names, N225_unem_column_names)
+    DJI = DJI(stock_inputs['DJI'], unemployment_inputs['DJI'], stock_column_names, DJI_unem_column_names)
+    LSE = LSE(stock_inputs['LSE'], unemployment_inputs['LSE'], stock_column_names, LSE_unem_column_names)
+    N225 = N225(stock_inputs['N225'], unemployment_inputs['N225'], stock_column_names, N225_unem_column_names)
 
     # Stock Exchange Datasets
-    # stocks_dict = dict()
-    # stocks_dict['IBEX35'] = IBEX35.process_stockExchangeData()
-    # stocks_dict['DJI'] = DJI.process_stockExchangeData()
-    # stocks_dict['LSE'] = LSE.process_stockExchangeData()
-    # stocks_dict['N225'] = N225.process_stockExchangeData()
+    stocks_dict = dict()
+    stocks_dict['IBEX35'] = IBEX35.process_stockExchangeData()
+    stocks_dict['DJI'] = DJI.process_stockExchangeData()
+    stocks_dict['LSE'] = LSE.process_stockExchangeData()
+    stocks_dict['N225'] = N225.process_stockExchangeData()
 
-    # column_names = ['Date'] + stocks_dict.keys()
-    # value_to_extract = 'Close'
-    # index_colum = 'Date'
-    # output_path = os.path.dirname(os.path.abspath(__file__)).replace('src/process_data', 'data/datos_bolsa/processed/')
-    # filename = 'csv_stockExchange_mixed'
-    # output_path = output_path + filename
+    column_names = ['Date'] + stocks_dict.keys()
+    value_to_extract = 'Close'
+    index_colum = 'Date'
+    output_path = os.path.dirname(os.path.abspath(__file__)).replace('src/process_data', 'data/datos_bolsa/processed/')
+    filename = 'csv_stockExchange_mixed'
+    output_path = output_path + filename
 
-    # toCSV_StockExchangeProcessed_data(stocks_dict, column_names, index_colum, value_to_extract, output_path)
+    toCSV_StockExchangeProcessed_data(stocks_dict, column_names, index_colum, value_to_extract, output_path)
 
     # Unemployment Datasets
-    unem_dict = dict()
-    unem_dict['IBEX35'] = IBEX35.process_unemploymentData()
+    # unem_dict = dict()
+    # unem_dict['IBEX35'] = IBEX35.process_unemploymentData()
     # unem_dict['DJI'] = DJI.process_unemploymentData()
     # unem_dict['LSE'] = LSE.process_unemploymentData()
     # unem_dict['N225'] = N225.process_unemploymentData()

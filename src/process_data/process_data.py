@@ -18,6 +18,7 @@ class IBEX35():
         print('Reading IBEX35 stock Exchange data')
         self.input_stock_file = pd.read_csv(self.input_stock_path, sep=self.sep, names=self.stock_column_names, header = 0)
         print(' Processing...')
+
         # Drop first value. Is not common in all dataframes
         self.process_data = self.input_stock_file[self.input_stock_file.Date != '1999-12-31']
         self.process_data = self.process_data.reset_index(drop = True)
@@ -35,18 +36,22 @@ class IBEX35():
         print('Reading IBEX35 unemployment data')
         self.input_unem_file = pd.read_csv(self.input_unem_path, sep=self.sep, names=self.unem_column_names, header = 0)
         self.process_data_unem = self.input_unem_file
-        # print(self.process_data_unem)
+
 
         print(' Processing...')
         # Transpose the dataframe
         self.process_data_unem = self.process_data_unem.transpose()
+        self.process_data_unem['Date'] = self.process_data_unem.index
         # Rename columns
-        self.process_data_unem = self.process_data_unem.rename(columns={0: "Date", 1: "Data"})
-        # self.process_data_unem = self.process_data_unem[1:]
+        self.process_data_unem = self.process_data_unem.rename(columns={0: "Percentage"})
         # Sort by date
         self.process_data_unem = self.process_data_unem.sort_values(by='Date')
+        self.process_data_unem = self.process_data_unem[:-1]
         self.process_data_unem = self.process_data_unem.reset_index(drop=True)
-        # Fill data from 2001
+        sequence = ['Date', 'Percentage']
+        self.process_data_unem = self.process_data_unem.reindex(columns=sequence)
+
+        # Fill data from 2000
         start_date = '2001T4'
         stop_date = '1999T4'
         next_date = start_date
@@ -77,6 +82,7 @@ class IBEX35():
             index_row = self.process_data_unem[self.process_data_unem.Date == date].index.tolist()
             self.process_data_unem.set_value(index_row, 'Date', date_input)
         print(' Done!')
+        self.process_data_unem = self.process_data_unem.reset_index(drop=True)
         return self.process_data_unem
 
 class DJI():
@@ -92,6 +98,7 @@ class DJI():
         print('Reading DJI stock Exchange data')
         self.input_stock_file = pd.read_csv(self.input_stock_path, sep=self.sep, names=self.stock_column_names, header = 0)
         print(' Processing...')
+
         # Drop last value. Is not common in all dataframes
         self.process_data = self.input_stock_file[self.input_stock_file.Date != '2016-12-01']
         self.process_data = self.process_data.reset_index(drop = True)
@@ -116,7 +123,7 @@ class DJI():
         indicator = 'Q'
         next_index = 0
         Q_months = ['None', 'Mar', 'Jun', 'Sep', 'Dec']
-        cols = ['Date', 'Data']
+        cols = ['Date', 'Percentage']
         init = ['None', 'None']
 
         self.process_data_unem = pd.DataFrame.from_records([init], columns=cols, index=[next_index])
@@ -132,7 +139,6 @@ class DJI():
                 line = pd.DataFrame.from_records([row], columns=cols, index= [next_index])
                 frames = [self.process_data_unem, line]
                 self.process_data_unem = pd.concat(frames)
-                # self.process_data_unem = self.process_data_unem.reset_index(drop=True)
 
                 if curr_Q == nQs:
                     curr_Q = 1
@@ -140,7 +146,7 @@ class DJI():
                     curr_Q += 1
 
         self.process_data_unem = self.process_data_unem[1:]
-        print(self.process_data_unem)
+        self.process_data_unem.index = self.process_data_unem.index - 1
         print(' Done!')
         return self.process_data_unem
 
@@ -158,6 +164,7 @@ class LSE():
         print('Reading LSE stock Exchange data')
         self.input_stock_file = pd.read_csv(self.input_stock_path, sep=self.sep, names=self.stock_column_names, header = 0)
         print(' Processing...')
+
         # Drop last value. Is not common in all dataframes
         self.process_data = self.input_stock_file[self.input_stock_file.Date != '2016-12-01']
         self.process_data = self.process_data.reset_index(drop = True)
@@ -239,12 +246,29 @@ class LSE():
     def process_unemploymentData(self):
         # Read unemployment data
         print('Reading LSE unemployment data')
-        # self.input_unem_file = pd.read_csv(self.input_unem_path, sep=self.sep, names=self.unem_column_names)
-        # self.process_data_unem = self.input_unem_file
+        self.input_unem_file = pd.read_csv(self.input_unem_path, sep=self.sep)
+        self.process_data_unem = self.input_unem_file
+
         print(' Processing...')
+        # Rename column names
+        self.process_data_unem = self.process_data_unem.rename(columns={'1971': "Date", '4.1': "Percentage"})
+
+        # Extract info with interesting data
+        init_date = '2000 Q1'
+        end_date = '2016 Q4'
+        start_index = self.process_data_unem[self.process_data_unem.Date == init_date].index.tolist()[0]
+        end_index = self.process_data_unem[self.process_data_unem.Date == end_date].index.tolist()[0]
+        self.process_data_unem = self.process_data_unem[start_index:end_index+1]
+        self.process_data_unem = self.process_data_unem.reset_index(drop=True)
+
+        # Change date format
+        for date in self.process_data_unem.Date:
+            date_toinsert = ''.join(date.split(' '))
+            index_row = self.process_data_unem[self.process_data_unem.Date == date].index.tolist()
+            self.process_data_unem.set_value(index_row, 'Date', date_toinsert)
+
         print(' Done!')
-        # return self.process_data_unem
-        pass
+        return self.process_data_unem
 
 class N225():
     def __init__(self, input_stock_path, input_unem_path, stock_column_names, unem_column_names):
@@ -272,14 +296,43 @@ class N225():
     def process_unemploymentData(self):
         # Read unemployment data
         print('Reading N225 unemployment data')
-        # self.input_unem_file = pd.read_csv(self.input_unem_path, sep=self.sep, names=self.unem_column_names, header = 0)
-        # self.process_data_unem = self.input_unem_file
-        print(' Processing...')
-        print(' Done!')
-        # return self.process_data_unem
-        pass
+        self.input_unem_file = pd.read_csv(self.input_unem_path, sep=self.sep)
+        self.process_data_unem = self.input_unem_file
 
-def toCSV_StockExchangeProcessed_data(dict_csvs, column_names, index_colum, value_to_extract, output_path, sep = ','):
+        print(' Processing...')
+        # Rename column names
+        self.process_data_unem = self.process_data_unem.rename(columns={'1963/01': "Date", '1.4': "Percentage"})
+
+        # Extract info with interesting data
+        init_date = '2000/01'
+        end_date = '2016/12'
+        start_index = self.process_data_unem[self.process_data_unem.Date == init_date].index.tolist()[0]
+        end_index = self.process_data_unem[self.process_data_unem.Date == end_date].index.tolist()[0]
+        self.process_data_unem = self.process_data_unem[start_index:end_index+1]
+        self.process_data_unem = self.process_data_unem.reset_index(drop=True)
+
+        # Extract Qs per year
+        interesting_months = ['03', '06', '09', '12']
+        indexes_to_drop = list()
+        for date in self.process_data_unem.Date:
+            if date.split('/')[1] not in interesting_months:
+                index_to_drop = self.process_data_unem[self.process_data_unem.Date == date].index.tolist()[0]
+                indexes_to_drop.append(index_to_drop)
+        self.process_data_unem.drop(self.process_data_unem.index[indexes_to_drop], inplace=True)
+        self.process_data_unem = self.process_data_unem.reset_index(drop=True)
+
+        # Change indicator
+        indicator = 'Q'
+        init_indicator = '/'
+
+        for date in self.process_data_unem.Date:
+            date_insert = date.split(init_indicator)[0] + indicator + str(int(date.split(init_indicator)[1])/3)
+            index_row = self.process_data_unem[self.process_data_unem.Date == date].index.tolist()[0]
+            self.process_data_unem.set_value(index_row, 'Date', date_insert)
+        print(' Done!')
+        return self.process_data_unem
+
+def toCSV_Processed_data(dict_csvs, column_names, index_colum, value_to_extract, output_path, sep = ','):
     # Open output file
     csv_file = open(output_path, 'w')
     csv_writer = csv.writer(csv_file, delimiter=sep, quotechar='"')
@@ -300,9 +353,6 @@ def toCSV_StockExchangeProcessed_data(dict_csvs, column_names, index_colum, valu
 
             row.append(value_to_append)
         csv_writer.writerow(row)
-
-# def toCSV_UnemProcessed_data(dict_csvs, column_names, index_colum, value_to_extract, output_path, sep = ','):
-#     pass
 
 if __name__ == "__main__":
     # Stock Exchange Data
@@ -375,21 +425,21 @@ if __name__ == "__main__":
     filename = 'csv_stockExchange_mixed'
     output_path = output_path + filename
 
-    toCSV_StockExchangeProcessed_data(stocks_dict, column_names, index_colum, value_to_extract, output_path)
+    toCSV_Processed_data(stocks_dict, column_names, index_colum, value_to_extract, output_path)
 
     # Unemployment Datasets
-    # unem_dict = dict()
-    # unem_dict['IBEX35'] = IBEX35.process_unemploymentData()
-    # unem_dict['DJI'] = DJI.process_unemploymentData()
-    # unem_dict['LSE'] = LSE.process_unemploymentData()
-    # unem_dict['N225'] = N225.process_unemploymentData()
+    unem_dict = dict()
+    unem_dict['IBEX35'] = IBEX35.process_unemploymentData()
+    unem_dict['DJI'] = DJI.process_unemploymentData()
+    unem_dict['LSE'] = LSE.process_unemploymentData()
+    unem_dict['N225'] = N225.process_unemploymentData()
 
-    # column_names_unem = ['Date'] + unem_dict.keys()
-    # value_to_extract_unem = 'Percentage'
-    # index_colum_unem = 'Date'
-    # output_path_unem = os.path.dirname(os.path.abspath(__file__)).replace('src/process_data', 'data/datos_paro/processed/')
-    # filename_unem = 'csv_Unem_mixed'
-    # output_path_unem = output_path_unem + filename_unem
+    # print(unem_dict['LSE'])
+    column_names_unem = ['Date'] + unem_dict.keys()
+    output_path_unem = os.path.dirname(os.path.abspath(__file__)).replace('src/process_data', 'data/datos_paro/processed/')
+    filename_unem = 'csv_Unem_mixed'
+    index_colum_unem = 'Date'
+    value_to_extract_unem = 'Percentage'
+    output_path_unem = output_path_unem + filename_unem
 
-    # toCSV_UnemProcessed_data(unem_dict, column_names_unem, index_colum_unem,
-    #                            value_to_extract_unem, output_path_unem)
+    toCSV_Processed_data(unem_dict, column_names_unem, index_colum_unem, value_to_extract_unem, output_path_unem)

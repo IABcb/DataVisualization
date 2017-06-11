@@ -1,5 +1,6 @@
 from pymongo import MongoClient
-
+import os
+import sys
 class mongo():
     def __init__(self, collections_list, ddbb_data_path, ddbb = 'visualization'):
         self.ddbb_data_path = ddbb_data_path
@@ -10,7 +11,7 @@ class mongo():
         self.collections = dict()
 
         for col in self.collections_list:
-            self.collections[col] = self.db.col
+            self.collections[col] = self.db[col]
 
     def get_collections(self):
         return self.collections

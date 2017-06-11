@@ -355,16 +355,6 @@ def toCSV_Processed_data(dict_csvs, column_names, index_colum, value_to_extract,
         csv_writer.writerow(row)
 
 if __name__ == "__main__":
-    # Stock Exchange Data
-    sources = {'IBEX35': 'Spain',
-                 'DJI': 'EEUU',
-                 'LSE': 'London',
-                 'N225': 'Japan'}
-
-    coins = {'IBEX35': 'Euros',
-                 'DJI': 'Dollars',
-                 'LSE': 'Pounds',
-                 'N225': 'Yens'}
 
     stock_column_names = ['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']
     IBEX35_unem_column_names = ['Date', '2016T4', '2016T3', '2016T2', '2016T1',

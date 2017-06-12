@@ -137,7 +137,7 @@ if __name__ == "__main__":
     try:
 
         # Kafka
-        # init_kafka_docker()
+        init_kafka_docker()
         kafkaObj_stockExchange = KFK(host = kafka_ip, port = kafka_port, topic = 'stockExchange')
         producer_stock = kafkaObj_stockExchange.init_Kafka_producer()
 

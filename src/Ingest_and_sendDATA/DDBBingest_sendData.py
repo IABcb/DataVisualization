@@ -22,15 +22,14 @@ def stop_kafka():
 
 def make_query(collection, index):
     print('New query')
-    response = collection.find_one({'Date': index})
-    return response, finish_queries
+    return collection.find_one({'Date': index})
 
 def send_data2kafka(data_2send, producer):
     print('Sending data...')
     producer.produce(bytes(data_2send))
 
 def remove_data(mongoOBJ, collection):
-    print('TYPE: ' + type)
+    print('Removing...')
     mongoOBJ.rm_all_docs_collection(collection)
     mongoOBJ.count_collection_docs(collection)
 
@@ -48,42 +47,35 @@ def insert_data_intoMONGO(mongoOBJ, CSVinput_data, collection, type, sources, co
     print('TYPE: ' + type)
     mongoOBJ.count_collection_docs(collection)
 
-def update_stock_index(curr_stock_index, finish_stock_index, finish_queries):
+def update_index(curr_index, finish_index, finish_queries):
 
-    if curr_stock_index == finish_stock_index:
+    if curr_index == finish_index:
         finish_queries = True
     else:
         # Stock index
-        if curr_stock_index.split('-')[1] == '12':
+        if curr_index.split('-')[1] == '12':
             month = '01'
-            year = str(int(curr_stock_index.split('-')[0]) + 1)
+            year = str(int(curr_index.split('-')[0]) + 1)
         else:
-            month = str(int(curr_stock_index.split('-')[1]) + 1)
-            year = curr_stock_index.split('-')[0]
+            month = str(int(curr_index.split('-')[1]) + 1)
+            year = curr_index.split('-')[0]
             if len(month) == 1:
                 month = '0' + month
 
-        curr_stock_index = str(year) + '-' + str(month)
-
-    return curr_stock_index, finish_queries
-
-def update_unemployment_index(curr_unem_index, finish_unem_index, finish_queries):
-
-    if  curr_unem_index == finish_unem_index:
-        finish_queries = True
-    else:
-        if curr_unem_index.split('Q')[1] == '4':
-            month = 1
-            year = str(int(curr_unem_index.split('Q')[0]) + 1)
-        else:
-            month = str(int(curr_unem_index.split('Q')[1]) + 1)
-            year = curr_unem_index.split('Q')[0]
-
-        curr_unem_index = str(year) + 'Q' + str(month)
-
-    return curr_unem_index, finish_queries
+        curr_index = str(year) + '-' + str(month)
+    print(curr_index)
+    return curr_index, finish_queries
 
 if __name__ == "__main__":
+
+    # Removing previous dockers...
+    # Stop all containers
+    print('Removing previous containers...')
+    os.system('sudo docker stop $(sudo docker ps -a -q)')
+    # Remove all stopped containers
+    os.system('sudo docker rm $(sudo docker ps -a -q)')
+
+    time.sleep(3)
 
     # Mongo Docker Set up
     ddbb_data_path = os.path.dirname(os.path.abspath(__file__)).replace('src/Ingest_and_sendDATA', 'docker/MongoDB/data')
@@ -106,7 +98,7 @@ if __name__ == "__main__":
     kafka_port = 9092
 
     # Query parameters
-    time_to_query = 3
+    time_to_query = 0
 
     if len(sys.argv) == 2:
         if sys.argv[1] == 'ingest':
@@ -114,8 +106,8 @@ if __name__ == "__main__":
             sep = ','
             columnames = ['Date', 'DJI', 'LSE', 'IBEX35', 'N225']
 
-            stockExchangePath = os.path.dirname(os.path.abspath(__file__)).replace('src/DDBB_data_ingest', 'data/datos_bolsa/processed/csv_stockExchange_mixed')
-            unemploymentPath  = os.path.dirname(os.path.abspath(__file__)).replace('src/DDBB_data_ingest', 'data/datos_paro/processed/csv_Unem_mixed')
+            stockExchangePath = os.path.dirname(os.path.abspath(__file__)).replace('src/Ingest_and_sendDATA', 'data/datos_bolsa/processed/csv_stockExchange_mixed')
+            unemploymentPath  = os.path.dirname(os.path.abspath(__file__)).replace('src/Ingest_and_sendDATA', 'data/datos_paro/processed/csv_Unem_mixed')
 
             stockExchangeData = pd.read_csv(stockExchangePath, sep=sep, names=columnames, header = 0)
             unemploymentData = pd.read_csv(unemploymentPath, sep=sep, names=columnames, header = 0)
@@ -145,44 +137,36 @@ if __name__ == "__main__":
         producer_unem = kafkaObj_unemployment.init_Kafka_producer()
 
         init_stock_index = '2000-01'
-        init_unem_index = '2000Q1'
+        init_unem_index = '2000-01'
 
         finish_stock_index = '2016-11'
-        finish_unem_index = '2016Q4'
-
-        qmonths = ['03', '06', '09', '12']
+        finish_unem_index = '2016-11'
 
         curr_stock_index = init_stock_index
         curr_unem_index = init_unem_index
         finish_queries = False
         response_stock = None
         response_unem = None
+
         while not finish_queries:
             # Query maker
-            response_stock, finish_queries_stock = \
-                make_query(collections['stockExchange'], curr_stock_index)
+            response_stock = make_query(collections['stockExchange'], curr_stock_index)
+            response_unem = make_query(collections['unemployment'], curr_unem_index)
+
+            curr_stock_index, finish_queries = \
+                update_index(curr_stock_index, finish_stock_index, finish_queries)
+
+            curr_unem_index, finish_queries = \
+                update_index(curr_unem_index, finish_unem_index, finish_queries)
+
+            print('\nResponse from stock exchange')
+            print(response_stock)
+            print('\nResponse from unemployment')
+            print(response_unem)
 
             # Send extracted data
             send_data2kafka(response_stock, producer_stock)
-
-            print('Response from stock exchange')
-            print(response_stock)
-
-            if curr_stock_index.split('-')[1] in qmonths or curr_stock_index == finish_stock_index:
-                response_unem, finish_queries_unem = \
-                    make_query(collections['unemployment'], curr_unem_index)
-
-                curr_unem_index, finish_queries = \
-                    update_unemployment_index(curr_unem_index,
-                                finish_unem_index, finish_queries)
-
-                # Send extracted data
-                send_data2kafka(response_unem, producer_unem)
-                print('Response from unemployment')
-                print(response_unem)
-
-            curr_stock_index, finish_queries = \
-                update_stock_index(curr_stock_index, finish_stock_index, finish_queries)
+            send_data2kafka(response_unem, producer_unem)
 
             # Time to next query
             time.sleep(time_to_query)

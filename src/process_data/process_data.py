@@ -51,7 +51,7 @@ class IBEX35():
         sequence = ['Date', 'Percentage']
         self.process_data_unem = self.process_data_unem.reindex(columns=sequence)
 
-        # Fill data from 2000
+        # Fill data from 2000 to 2002
         start_date = '2001T4'
         stop_date = '1999T4'
         next_date = start_date
@@ -75,14 +75,51 @@ class IBEX35():
             else:
                 break
 
-        # Change T idicator for Q
-        change_indicator = 'Q'
+        # Repeate values from each month of each Q
+        curr_index = 1
+        nreps_toadd = 2
+        new_process_data_unem = self.process_data_unem
         for date in self.process_data_unem.Date:
-            date_input = date.split(indicator)[0] + change_indicator + date.split(indicator)[1]
-            index_row = self.process_data_unem[self.process_data_unem.Date == date].index.tolist()
-            self.process_data_unem.set_value(index_row, 'Date', date_input)
+            frame1 = self.process_data_unem[:curr_index]
+            frame2 = self.process_data_unem[curr_index:]
+            line = self.process_data_unem[self.process_data_unem['Date'] == date]
+
+            frames = list()
+            frames.append(frame1)
+            for row in range(nreps_toadd):
+               frames.append(line)
+
+            frames.append(frame2)
+
+            self.process_data_unem = pd.concat(frames)
+            self.process_data_unem = self.process_data_unem.reset_index(drop=True)
+
+            curr_index += 3
+
+        # Change T indicator for '-' and add month
+        change_indicator = '-'
+        month = '01'
+        for date in new_process_data_unem.Date:
+
+            date_input = date.split(indicator)[0] + change_indicator + month
+            index_row = self.process_data_unem[self.process_data_unem.Date == date].index.tolist()[0]
+
+            for rep in range(nreps_toadd + 1):
+                self.process_data_unem.set_value(index_row, 'Date', date_input)
+                self.process_data_unem = self.process_data_unem.reset_index(drop=True)
+                index_row = index_row + 1
+
+                month = str(int(month) + 1)
+                if int(month) > 12:
+                    month = '01'
+
+                if len(month) == 1:
+                    month = '0' + month
+
+                date_input = date.split(indicator)[0] + change_indicator + month
+
+        self.process_data_unem = self.process_data_unem[:-1]
         print(' Done!')
-        self.process_data_unem = self.process_data_unem.reset_index(drop=True)
         return self.process_data_unem
 
 class DJI():
@@ -118,36 +155,38 @@ class DJI():
 
         print(' Processing...')
 
-        nQs = 4
-        curr_Q = 1
-        indicator = 'Q'
+        indicator = '-'
         next_index = 0
         Q_months = ['None', 'Mar', 'Jun', 'Sep', 'Dec']
         cols = ['Date', 'Percentage']
         init = ['None', 'None']
+        months_dict = {'Jan': '01', 'Feb': '02', 'Mar': '03',
+                        'Apr': '04', 'May': '05', 'Jun': '06',
+                        'Jul': '07', 'Aug': '08', 'Sep': '09',
+                        'Oct': '10', 'Nov': '11', 'Dec': '12'}
 
         self.process_data_unem = pd.DataFrame.from_records([init], columns=cols, index=[next_index])
         self.process_data_unem = self.process_data_unem.reset_index(drop=True)
-        for date in self.input_unem_file.Year:
-            for d in range(nQs):
+
+        for year in self.input_unem_file.Year:
+            for month in months_dict.keys():
                 next_index += 1
                 row = list()
-                curr_date = str(date) + indicator + str(curr_Q)
+                curr_date = str(year) + indicator + months_dict[month]
                 row.append(curr_date)
-                row.append(self.input_unem_file[Q_months[curr_Q]][self.input_unem_file.Year == date].item())
+                row.append(self.input_unem_file[month][self.input_unem_file.Year == year].item())
 
                 line = pd.DataFrame.from_records([row], columns=cols, index= [next_index])
                 frames = [self.process_data_unem, line]
                 self.process_data_unem = pd.concat(frames)
 
-                if curr_Q == nQs:
-                    curr_Q = 1
-                else:
-                    curr_Q += 1
 
-        self.process_data_unem = self.process_data_unem[1:]
-        self.process_data_unem.index = self.process_data_unem.index - 1
+        self.process_data_unem = self.process_data_unem.sort_values(by='Date')
+        self.process_data_unem = self.process_data_unem[:-2]
+        self.process_data_unem = self.process_data_unem.reset_index(drop=True)
+
         print(' Done!')
+
         return self.process_data_unem
 
 
@@ -244,6 +283,11 @@ class LSE():
         return self.process_data
 
     def process_unemploymentData(self):
+        months_dict = {'JAN': '01', 'FEB': '02', 'MAR': '03',
+                        'APR': '04', 'MAY': '05', 'JUN': '06',
+                        'JUL': '07', 'AUG': '08', 'SEP': '09',
+                        'OCT': '10', 'NOV': '11', 'DEC': '12'}
+
         # Read unemployment data
         print('Reading LSE unemployment data')
         self.input_unem_file = pd.read_csv(self.input_unem_path, sep=self.sep)
@@ -254,16 +298,17 @@ class LSE():
         self.process_data_unem = self.process_data_unem.rename(columns={'1971': "Date", '4.1': "Percentage"})
 
         # Extract info with interesting data
-        init_date = '2000 Q1'
-        end_date = '2016 Q4'
+        init_date = '2000 JAN'
+        end_date = '2016 NOV'
         start_index = self.process_data_unem[self.process_data_unem.Date == init_date].index.tolist()[0]
         end_index = self.process_data_unem[self.process_data_unem.Date == end_date].index.tolist()[0]
         self.process_data_unem = self.process_data_unem[start_index:end_index+1]
         self.process_data_unem = self.process_data_unem.reset_index(drop=True)
 
         # Change date format
+        indicator = '-'
         for date in self.process_data_unem.Date:
-            date_toinsert = ''.join(date.split(' '))
+            date_toinsert = date.split(' ')[0] + indicator + months_dict[date.split(' ')[1]]
             index_row = self.process_data_unem[self.process_data_unem.Date == date].index.tolist()
             self.process_data_unem.set_value(index_row, 'Date', date_toinsert)
 
@@ -311,24 +356,26 @@ class N225():
         self.process_data_unem = self.process_data_unem[start_index:end_index+1]
         self.process_data_unem = self.process_data_unem.reset_index(drop=True)
 
-        # Extract Qs per year
-        interesting_months = ['03', '06', '09', '12']
-        indexes_to_drop = list()
-        for date in self.process_data_unem.Date:
-            if date.split('/')[1] not in interesting_months:
-                index_to_drop = self.process_data_unem[self.process_data_unem.Date == date].index.tolist()[0]
-                indexes_to_drop.append(index_to_drop)
-        self.process_data_unem.drop(self.process_data_unem.index[indexes_to_drop], inplace=True)
-        self.process_data_unem = self.process_data_unem.reset_index(drop=True)
+        # # Extract Qs per year
+        # interesting_months = ['03', '06', '09', '12']
+        # indexes_to_drop = list()
+        # for date in self.process_data_unem.Date:
+        #     if date.split('/')[1] not in interesting_months:
+        #         index_to_drop = self.process_data_unem[self.process_data_unem.Date == date].index.tolist()[0]
+        #         indexes_to_drop.append(index_to_drop)
+        # self.process_data_unem.drop(self.process_data_unem.index[indexes_to_drop], inplace=True)
+        # self.process_data_unem = self.process_data_unem.reset_index(drop=True)
 
         # Change indicator
-        indicator = 'Q'
+        indicator = '-'
         init_indicator = '/'
 
         for date in self.process_data_unem.Date:
-            date_insert = date.split(init_indicator)[0] + indicator + str(int(date.split(init_indicator)[1])/3)
+            date_insert = date.split(init_indicator)[0] + indicator + date.split(init_indicator)[1]
             index_row = self.process_data_unem[self.process_data_unem.Date == date].index.tolist()[0]
             self.process_data_unem.set_value(index_row, 'Date', date_insert)
+
+        self.process_data_unem = self.process_data_unem[:-1]
         print(' Done!')
         return self.process_data_unem
 

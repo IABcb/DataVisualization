@@ -10,8 +10,9 @@ class mongo():
         self.db = self.client.ddbb
         self.collections = dict()
 
-        for col in self.collections_list:
-            self.collections[col] = self.db[col]
+        if len(collections_list) > 0:
+            for col in self.collections_list:
+                self.collections[col] = self.db[col]
 
     def get_collections(self):
         return self.collections

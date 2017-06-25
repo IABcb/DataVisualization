@@ -1,0 +1,47 @@
+Buenas noches,
+
+Ya he terminado mi parte de la práctica de visualización.
+
+En resumen, se ha compuesto de 3 fases:
+
+ 1. Procesamiento de datos: para cada csv tanto de datos de bolsa como datos de paro, he tenido que formatearlo en pandas y he creado unos ficheros en csv con sus salidas unificadas, uno para cada uno de los dos tipos de datos
+
+2. Ingesta de datos en docker MONGO: he creado dos colecciones en la misma base de datos, una para datos de paro y otra para los de bolsa. Los datos de bolsa van en el rango 2000-01  // 2016-11, de mes en mes.
+Los datos de paro van en el rango 2000Q1 // 2016Q4, por Qs.
+Es decir, los datos de paro se enviaran cada 3 mensajes de datos de bolsa.
+
+3. Por tema de dockers, en el mismo fichero de la ingesta de datos en mongo, he añadido el streaming query. Los formatos con los que te llegarán los datos a dos colas kafka son:
+
+Dato stockExchange:
+
+{u'Date': u'2000-03', u'Type': u'stockExchange', u'_id': ObjectId('593dd11986b5dd06da1d169a'), u'Data': {u'DJI': {u'Source': u'EEUU', u'Coin': u'Dollars', u'Value': 10921.919922}, u'LSE': {u'Source': u'London', u'Coin': u'Pounds', u'Value': u'None'}, u'IBEX35': {u'Source': u'Spain', u'Coin': u'Euros', u'Value': 11467.900391}, u'N225': {u'Source': u'Japan', u'Coin': u'Yens', u'Value': 17973.699219}}}
+
+
+Dato unemployment:
+
+{u'Date': u'2000Q1', u'Type': u'unemployment', u'_id': ObjectId('593dd11a86b5dd06da1d1763'), u'Data': {u'DJI': {u'Source': u'EEUU', u'Coin': u'Dollars', u'Value': 4.0}, u'LSE': {u'Source': u'London', u'Coin': u'Pounds', u'Value': 5.8}, u'IBEX35': {u'Source': u'Spain', u'Coin': u'Euros', u'Value': u'None'}, u'N225': {u'Source': u'Japan', u'Coin': u'Yens', u'Value': 4.9}}}
+
+
+A continuación te detallo una breve guía de como proceder para tus pruebas:
+
+1. Bajarte todo el repo, para que los ficheros procesados ya estén en sus carpetas correspondientes. Si no, tendrías que ejecutar el script:
+
+"python src/process_data/process_data.py"
+
+2. Ingesta de datos (paso a ejecutar sólo la primera vez):
+
+"python src/Ingest_and_sendDATA/DDBBingest_sendData.py insert"
+
+Se insertarán los datos y comenzará el streaming de queries cada 3 segundos. Este parámetro se puede modificar, siendo el time_to_query.
+
+3. Una vez insertados los datos, cuando quieras realizar más pruebas, bastará con ejecutar el mismo comando pero sin la opción insert, quedando:
+
+"python src/Ingest_and_sendDATA/DDBBingest_sendData.py insert"
+
+Cualquier cosa que quieres que modifique, me lo dices y sin problemas.
+
+P.D: no te preocupes por levantar ningún docker, está todo automatizado.
+
+P.D2: los datos faltantes llegarán como string None. No hay muchos, pero para cuadrar ficheros he tenido que meter algunos.
+
+Saludos y buenas noches!

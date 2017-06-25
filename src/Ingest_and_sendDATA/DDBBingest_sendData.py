@@ -78,7 +78,11 @@ if __name__ == "__main__":
     time.sleep(3)
 
     # Mongo Docker Set up
-    ddbb_data_path = os.path.dirname(os.path.abspath(__file__)).replace('src/Ingest_and_sendDATA', 'docker/MongoDB/data')
+    # ddbb_data_path = os.path.dirname(os.path.abspath(__file__)).replace('src/Ingest_and_sendDATA', 'docker/MongoDB/data')
+
+    ddbb_data_path = os.path.dirname(os.path.abspath(__file__)).replace('src/Ingest_and_sendDATA',
+                                                                        '/home/raul/data/db')
+
     collections_list = ['stockExchange', 'unemployment']
     mongoOBJ = MGDB(collections_list, ddbb_data_path)
     collections = mongoOBJ.get_collections()
@@ -126,6 +130,8 @@ if __name__ == "__main__":
             remove_data(mongoOBJ, collections['unemployment'])
 
     #  Send data
+
+
     try:
 
         # Kafka

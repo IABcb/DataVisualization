@@ -12,7 +12,7 @@ if __name__=="__main__":
     
         print("Sending messages to kafka 'test' topic...")
 
-        sleep_time = 0.5
+        sleep_time = 0.1
         topic = "visualization"
         filename = "/home/raul/GIT/DataVisualization/data/final_data/final_data.csv"
 

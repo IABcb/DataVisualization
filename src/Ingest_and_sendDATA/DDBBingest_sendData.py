@@ -128,6 +128,7 @@ if __name__ == "__main__":
             # Remove data, if needed
             remove_data(mongoOBJ, collections['stockExchange'])
             remove_data(mongoOBJ, collections['unemployment'])
+            sys.exit()
 
     #  Send data
 

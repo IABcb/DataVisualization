@@ -1,12 +1,12 @@
-El proyecto se ejcutará con python 2.7
+################# El proyecto se ejcutará con python 2.7
 
-Serán necesarias las siguientes librería:
+################# Serán necesarias las siguientes librería:
 	pykafka
 	pymongo
 	bokeh
 	pandas
 
-Estructura del proyecto (version con mongo)
+################# Estructura del proyecto (version con mongo)
 
 	* data
 		- datos_bolsa
@@ -76,7 +76,10 @@ Estructura del proyecto (version con mongo)
 		- visualization
 			1) bokeh_visualization.py: script de visualizacion en bokeh
 
-Ejecución DEMO:
+################# Ejecución DEMO:
+
+- Hay que tener en cuenta, que la ejecución de esta demo para y elimina todo tipo de dockers para realiar una ejecución limpia.
+- Si en la primera ejecución de la demo, nos da un error con el broker de kafka, parar ejecución y volver a ejecutar.
 
 1. Nos situamos en la carpeta src/Ingest_and_sendDATA y ejecutamos:
 	* python DDBBingest_sendData.py ingest -> Para introducir los datos en la base de datos y empezar el streaming

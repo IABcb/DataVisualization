@@ -89,6 +89,7 @@ if __name__ == "__main__":
     # Mongo Docker Set up
     ddbb_data_path = os.path.dirname(os.path.abspath(__file__)).replace('src/Ingest_and_sendDATA', 'docker/MongoDB/data')
 
+
     collections_list = ['stockExchange', 'unemployment']
     mongoOBJ = MGDB(collections_list, ddbb_data_path)
     collections = mongoOBJ.get_collections()

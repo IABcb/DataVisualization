@@ -24,7 +24,7 @@ from KafkaConnection.kafka_connection import KafkaConnection as KFK
 sources = []
 all_column_names = []
 counter = 0.0
-topic_name = "visualization16"
+topic_name = "visualization100"
 
 all_names = ["time", "EEUU_Unem", "Spain_Unem", "Japan_Unem", "UK_Unem",
              "EEUU_DJI", "UK_LSE", "Spain_IBEX35", "Japan_N225"]
